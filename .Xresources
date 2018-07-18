@@ -1,0 +1,56 @@
+! #include "/home/philip/.colors/silentmike_revised"
+#include "/home/philip/.colors/yrdz"
+
+!Xcursor.size:		160
+!Xft Shit
+Xft.dpi:                    96
+Xft.antialias:              1
+Xft.rgba:                   rgb
+Xft.hinting:                1
+Xft.hintstyle:              hintfull
+Xft.autohint: 		    0
+Xft.lcdfilter:		    lcddefault
+
+! URxvt.depth:                24	
+URxvt.geometry:             110x35
+URxvt.fading:               0
+! URxvt.urgentOnBell:         true
+! URxvt.visualBell:           true
+URxvt.loginShell:           true
+URxvt.saveLines:            5000
+URxvt.internalBorder:       3
+URxvt.lineSpace:            0
+
+! Fonts
+URxvt.allow_bold:           false
+URxvt*font: xft:Dejavu Sans Mono:pixelsize=13
+URxvt*boldFont: xft:Dejavu Sans Mono:Bold:pixelsize=13
+
+
+! Fix font space
+URxvt*letterSpace: -1
+URxvt*internalBorder: 2
+
+! Scrollbar
+URxvt.scrollStyle:          rxvt
+URxvt.scrollBar:            false
+
+! Perl extensions
+URxvt*perl-lib: 	/usr/lib/urxvt/perl
+URxvt.perl-ext-common:      default,matcher
+URxvt.matcher.button:       1
+URxvt.url-launcher:          /usr/bin/firefox
+
+! Pasting stuff
+!URxvt.keysym.C-v:   perl:clipboard:paste
+!URxvt.keysym.M-C-v: perl:clipboard:paste_escaped
+
+! Cursor
+URxvt.cursorBlink:          true
+URxvt.cursorUnderline:      false
+
+! Pointer
+URxvt.pointerBlank:         true
+
+! Transparency
+!URxvt.background: rgba:1111/1111/1111/ddcc

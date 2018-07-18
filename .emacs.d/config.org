@@ -1,0 +1,1936 @@
+#+TITLE: My GNU Emacs configuration
+#+STARTUP: indent
+#+OPTIONS: H:5 num:nil tags:nil toc:nil timestamps:t
+#+LAYOUT: post
+#+DESCRIPTION: Loading emacs configuration using org-babel
+#+TAGS: emacs
+#+CATEGORIES: editing
+
+* Introduction
+Personal Information
+#+begin_src emacs-lisp :tangle yes
+  (setq user-full-name "Philip Adams")
+  (setq user-mail-address "pbadams@uchicago.edu")
+#+end_src
+** Security
+
+#+begin_src emacs-lisp :tangle yes
+  (setq tls-checktrust t)
+  (setq gnutls-verify-error t)
+
+  (let ((trustfile "/etc/ca-certificates/extracted/tls-ca-bundle.pem"))
+    (setq tls-program
+          `(,(format  "gnutls-cli --x509cafile %s -p %%p %%h" trustfile)
+            ,(format "openssl s_client -connect %%h:%%p -CAfile %s -no_ssl2 -ign_eof" trustfile)))
+    (setq gnutls-trustfiles (list trustfile)))
+#+end_src
+
+* General
+** Packages
+
+Repositories
+#+begin_src emacs-lisp :tangle yes
+  (eval-when-compile 
+    (require 'use-package))
+ ; (require 'diminish)
+  (require 'bind-key)
+
+  (defvar gnu '("gnu" . "https://elpa.gnu.org/packages/"))
+  (defvar melpa '("melpa" . "https://melpa.org/packages/"))
+
+  (setq package-archives nil)
+  (add-to-list 'package-archives melpa t)
+  (add-to-list 'package-archives gnu t)
+
+  (package-initialize)
+#+end_src
+
+Paradox
+#+begin_src emacs-lisp :tangle yes
+  (use-package paradox
+    :ensure t
+    :config
+    (setq paradox-execute-asynchronously t)
+    :bind
+    (("C-x p" . paradox-list-packages)))
+#+end_src
+
+** Convenience
+*** undo-tree
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package undo-tree
+    :ensure t
+    :config
+    (global-undo-tree-mode)
+    (setq undo-tree-auto-save-history t)
+    (setq undo-tree-visualizer-diff t)
+    (setq undo-tree-visualizer-timestamps t)
+    (setq undo-tree-history-directory-alist '(("." . "~/.emacs.d/backups/undotree"))))
+#+END_SRC
+*** y-or-n-p
+#+begin_src emacs-lisp :tangle yes
+  (fset 'yes-or-no-p 'y-or-n-p)
+#+end_src
+*** which-key
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package which-key
+    :ensure t
+    :config 
+    (setq which-key-mode t)
+    (which-key-mode))
+#+END_SRC
+*** Buffers and Backups
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
+  (setq delete-old-versions -1)
+  (setq version-control t)
+  (setq vc-make-backup-files t)
+  (setq auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list/" t)))
+
+  (require 'uniquify)
+  (setq uniquify-buffer-name-style 'post-forward)
+#+END_SRC
+*** Info+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package info+
+    :ensure t)
+#+END_SRC
+** Navigation
+*** Ivy/Swiper
+#+begin_src emacs-lisp :tangle yes
+  (use-package counsel
+    :ensure t
+    :bind
+    (("M-x" . counsel-M-x)
+     ("M-y" . counsel-yank-pop)
+     :map ivy-minibuffer-map
+     ("M-y" . ivy-next-line)))
+
+   (use-package swiper
+     :ensure t
+     :bind
+     (("C-s" . swiper)
+      ("C-c C-r" . ivy-resume)
+      ("C-x C-f" . counsel-find-file)
+      ("C-h f" . counsel-describe-function)
+      ("C-h v" . counsel-describe-variable)
+      ("C-h l" . counsel-find-library)
+      ("C-c i u" . counsel-unicode-char)
+      ("M-i" . counsel-imenu)
+      ("C-c g" . counsel-git)
+      ("C-c j" . counsel-git-grep)
+      ("C-c k" . counsel-ag)
+      ("C-c l" . scounsel-locate))
+     :config
+     (progn
+       (ivy-mode 1)
+       (setq ivy-use-virtual-buffers t)
+       (define-key read-expression-map (kbd "C-r") #'counsel-expression-history)
+       (ivy-set-actions
+        'counsel-find-file
+        '(("d" (lambda (x) (delete-file (expand-file-name x)))
+           "delete"
+           )))
+       (ivy-set-actions
+        'ivy-switch-buffer
+        '(("k"
+           (lambda (x)
+             (kill-buffer x)
+             (ivy--reset-state ivy-last))
+           "kill")
+          ("j"
+           ivy--switch-buffer-other-window-action
+           "other window")))))
+
+  ;; (use-package counsel-projectile
+  ;;   :ensure t
+  ;;   :config
+  ;;   (counsel-projectile-on))
+
+  (use-package ivy-hydra :ensure t)
+#+end_src
+
+*** Expand Region
+#+begin_src emacs-lisp :tangle yes
+  (use-package expand-region
+    :ensure t
+    :bind
+    (("M-e" . er/expand-region))
+    :config
+    (setq expand-region-contract-fast-key "c")
+    (setq expand-region-reset-fast-key "r"))
+#+end_src
+** GUI
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (menu-bar-mode -1)
+  (tool-bar-mode -1)
+  (scroll-bar-mode -1)
+  (setq inhibit-startup-screen t)
+  (use-package rainbow-delimiters
+    :ensure t)
+  (add-hook 'prog-mode-hook #'rainbow-delimiters-mode)
+  (use-package window-numbering
+    :ensure t
+    :config
+    (window-numbering-mode))
+#+END_SRC
+*** Theme
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package solarized-theme
+    :ensure t
+   ; :defer t
+    )
+  (use-package theme-changer
+    :ensure t)
+  ;(change-theme 'solarized-light 'solarized-dark)
+#+END_SRC
+** Writing
+*** Flyspell
+#+begin_src emacs-lisp :tangle yes
+  (use-package flyspell
+    :ensure t
+    :config
+    (add-hook 'text-mode-hook 'flyspell-mode)
+    (add-hook 'prog-mode-hook 'flyspell-prog-mode)
+    (add-hook 'erc-mode-hook 'flyspell-mode)
+    (add-hook 'org-mode-hook 'flyspell-mode))
+
+  (use-package flyspell-correct-ivy
+    :ensure t)
+#+end_src
+*** Auto-fill
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (add-hook 'LaTeX-mode-hook 'turn-on-auto-fill)
+  (add-hook 'message-mode-hook 'turn-on-auto-fill)
+  (add-hook 'org-mode-hook 'turn-on-auto-fill)
+
+  (set-default 'fill-column 80)
+#+END_SRC
+*** Dictionary
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package sdcv
+    :ensure t
+    :bind
+    (("C-d" . sdcv-search-input)))
+#+END_SRC
+** Reading
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package visual-fill-column
+    :ensure t)
+  (add-hook 'mu4e-view-mode-hook 'visual-line-mode)
+  (add-hook 'mu4e-view-mode-hook 'visual-fill-column-mode)
+  (add-hook 'elfeed-show-mode-hook 'visual-line-mode)
+  (add-hook 'elfeed-show-mode-hook 'visual-fill-column-mode)
+#+END_SRC
+** Hydra
+#+begin_src emacs-lisp :tangle yes
+  (use-package hydra
+    :ensure t)
+#+end_src
+** mode-line
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package smart-mode-line
+    :ensure t
+    :config
+    (sml/setup))
+#+END_SRC
+** Helpful
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package helpful
+    :ensure t
+    :config
+    (global-set-key (kbd "C-h f") #'helpful-callable)
+    (global-set-key (kbd "C-h k") #'helpful-key)
+    (global-set-key (kbd "C-h v") #'helpful-variable))
+#+END_SRC
+* Programming 
+** General
+#+BEGIN_SRC emacs-lisp :tangle yes
+(setq tramp-default-method "ssh")
+#+END_SRC
+*** Completion
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package company
+    :ensure t
+    :config
+    (global-company-mode)
+    (setq company-idle-delay 0)
+    (setq company-auto-complete nil)
+    (setq company-show-numbers t))
+
+  (use-package company-quickhelp
+    :ensure t
+    :config
+    (company-quickhelp-mode 1)
+    (setq company-quickhelp-delay 0.1))
+#+END_SRC
+*** Flycheck
+#+begin_src emacs-lisp :tangle yes
+  (use-package flycheck
+    :ensure t
+    :config
+    (global-flycheck-mode))
+#+end_src
+
+*** Projects and Git
+#+begin_src emacs-lisp :tangle yes
+  (global-git-commit-mode t)
+
+  (use-package projectile
+    :ensure t
+    :config
+    (projectile-global-mode))
+
+  (use-package magit
+    :ensure t
+    :bind
+    (("C-x g" . magit-status))
+    :config
+    (setq magit-repository-directories '(("~/projects" . 5)
+                                         ("~/documents/text/school/CMSC" . 5)
+                                         ("~/build" . 3))))
+
+  (use-package magit-svn
+    :ensure t
+    :config
+    (setq-default git-enable-magit-svn-plugin t))
+
+  (use-package fixmee
+    :ensure t)
+                                          ;:config
+                                          ;(global-fixmee-mode))
+  (use-package git-timemachine
+    :ensure t)
+
+  (use-package magithub
+    :after magit
+    :ensure t
+    :config (magithub-feature-autoinject t)
+    (setq magithub-clone-default-directory "~/projects/github"))
+#+end_src
+**** Hydra
+#+begin_src emacs-lisp :tangle yes
+  ;; (defhydra hydra-projectile-other-window (:color teal)
+  ;;   "projectile-other-window"
+  ;;   ("f"  projectile-find-file-other-window        "file")
+  ;;   ("g"  projectile-find-file-dwim-other-window   "file dwim")
+  ;;   ("d"  projectile-find-dir-other-window         "dir")
+  ;;   ("b"  projectile-switch-to-buffer-other-window "buffer")
+  ;;   ("q"  nil                                      "cancel" :color blue))
+
+  ;; (defhydra hydra-projectile (:color teal
+  ;;                             :hint nil)
+  ;;   "
+  ;;      PROJECTILE: %(projectile-project-root)
+
+  ;;      Find File            Search/Tags          Buffers                Cache
+  ;; ------------------------------------------------------------------------------------------
+  ;; _s-f_: file            _a_: ag                _i_: Ibuffer           _c_: cache clear
+  ;;  _ff_: file dwim       _g_: update gtags      _b_: switch to buffer  _x_: remove known project
+  ;;  _fd_: file curr dir   _o_: multi-occur     _s-k_: Kill all buffers  _X_: cleanup non-existing
+  ;;   _r_: recent file                                               ^^^^_z_: cache current
+  ;;   _d_: dir
+
+  ;; "
+  ;;   ("a"   projectile-ag)
+  ;;   ("b"   projectile-switch-to-buffer)
+  ;;   ("c"   projectile-invalidate-cache)
+  ;;   ("d"   projectile-find-dir)
+  ;;   ("s-f" projectile-find-file)
+  ;;   ("ff"  projectile-find-file-dwim)
+  ;;   ("fd"  projectile-find-file-in-directory)
+  ;;   ("g"   ggtags-update-tags)
+  ;;   ("s-g" ggtags-update-tags)
+  ;;   ("i"   projectile-ibuffer)
+  ;;   ("K"   projectile-kill-buffers)
+  ;;   ("s-k" projectile-kill-buffers)
+  ;;   ("m"   projectile-multi-occur)
+  ;;   ("o"   projectile-multi-occur)
+  ;;   ("s-p" projectile-switch-project "switch project")
+  ;;   ("p"   projectile-switch-project)
+  ;;   ("s"   projectile-switch-project)
+  ;;   ("r"   projectile-recentf)
+  ;;   ("x"   projectile-remove-known-project)
+  ;;   ("X"   projectile-cleanup-known-projects)
+  ;;   ("z"   projectile-cache-current-file)
+  ;;   ("`"   hydra-projectile-other-window/body "other window")
+  ;;   ("q"   nil "cancel" :color blue))
+
+  (defhydra hydra-project (:color blue :hint nil :idle 0.4)
+          "
+                                                                      ╭────────────┐
+      Files             Search          Buffer             Do         │ Projectile │
+    ╭─────────────────────────────────────────────────────────────────┴────────────╯
+      [_f_] file          [_a_] ag          [_b_] switch         [_g_] magit
+      [_l_] file dwim     [_A_] grep        [_v_] show all       [_p_] commander
+      [_r_] recent file   [_s_] occur       [_V_] ibuffer        [_i_] info
+      [_d_] dir           [_S_] replace     [_K_] kill all
+      [_o_] other         [_t_] find tag
+      [_u_] test file     [_T_] make tags
+      [_h_] root         
+                                                                          ╭────────┐
+      Other Window      Run             Cache              Do             │ Fixmee │
+    ╭──────────────────────────────────────────────────╯ ╭────────────────┴────────╯
+      [_F_] file          [_U_] test        [_kc_] clear         [_x_] TODO & FIXME
+      [_L_] dwim          [_m_] compile     [_kk_] add current   [_X_] toggle
+      [_D_] dir           [_c_] shell       [_ks_] cleanup
+      [_O_] other         [_C_] command     [_kd_] remove
+      [_B_] buffer
+    --------------------------------------------------------------------------------
+          "
+          ("<tab>" hydra-master/body "back")
+          ("<ESC>" nil "quit")
+          ("a"   projectile-ag)
+          ("A"   projectile-grep)
+          ("b"   projectile-switch-to-buffer)
+          ("B"   projectile-switch-to-buffer-other-window)
+          ("c"   projectile-run-async-shell-command-in-root)
+          ("C"   projectile-run-command-in-root)
+          ("d"   projectile-find-dir)
+          ("D"   projectile-find-dir-other-window)
+          ("f"   projectile-find-file)
+          ("F"   projectile-find-file-other-window)
+          ("g"   projectile-vc)
+          ("h"   projectile-dired)
+          ("i"   projectile-project-info)
+          ("kc"  projectile-invalidate-cache)
+          ("kd"  projectile-remove-known-project)
+          ("kk"  projectile-cache-current-file)
+          ("K"   projectile-kill-buffers)
+          ("ks"  projectile-cleanup-known-projects)
+          ("l"   projectile-find-file-dwim)
+          ("L"   projectile-find-file-dwim-other-window)
+          ("m"   projectile-compile-project)
+          ("o"   projectile-find-other-file)
+          ("O"   projectile-find-other-file-other-window)
+          ("p"   projectile-commander)
+          ("r"   projectile-recentf)
+          ("s"   projectile-multi-occur)
+          ("S"   projectile-replace)
+          ("t"   projectile-find-tag)
+          ("T"   projectile-regenerate-tags)
+          ("u"   projectile-find-test-file)
+          ("U"   projectile-test-project)
+          ("v"   projectile-display-buffer)
+          ("V"   projectile-ibuffer)
+          ("X"   fixmee-mode)
+          ("x"   fixmee-view-listing))
+
+  (bind-key (kbd "C-c p h") 'hydra-project/body projectile-mode-map)
+#+end_src
+**** TODO Tags
+#+BEGIN_SRC emacs-lisp :tangle yes
+  
+#+END_SRC
+*** YASnippet
+#+begin_src emacs-lisp :tangle yes
+  (use-package yasnippet
+    :ensure t
+    :config
+    (yas-global-mode 1))
+#+end_src
+**** TODO Work w/ company & org?
+*** Smartparens
+#+BEGIN_SRC emacs-lisp :tangle yes
+    (use-package smartparens
+      :ensure t
+      :bind (("C-c k" . sp-hydra/body))
+  :config    
+  (progn (require 'smartparens-config)
+         (add-hook 'lisp-mode-hook 'smartparens-strict-mode)
+         (add-hook 'emacs-lisp-mode-hook 'smartparens-strict-mode)
+         (add-hook 'scheme-mode-hook 'smartparens-strict-mode)       
+         (setq sp-autoskip-closing-pair 'always)))
+
+  (smartparens-global-mode t)
+  (show-paren-mode t)
+
+  (bind-key "C-M-s" (defhydra sp-hydra (:hint nil)
+                      "
+    Sexps (quit with _q_)
+    ^Nav^            ^Barf/Slurp^                 ^Depth^
+    ^---^------------^----------^-----------------^-----^-----------------
+    _f_: forward     _→_:          slurp forward   _R_: splice
+    _b_: backward    _←_:          barf forward    _r_: raise
+    _u_: backward ↑  _C-<right>_:  slurp backward  _↑_: raise backward
+    _d_: forward ↓   _C-<left>_:   barf backward   _↓_: raise forward
+    _p_: backward ↓
+    _n_: forward ↑
+    ^Kill^           ^Misc^                       ^Wrap^
+    ^----^-----------^----^-----------------------^----^------------------
+    _w_: copy        _j_: join                    _(_: wrap with ( )
+    _k_: kill        _s_: split                   _{_: wrap with { }
+    ^^               _t_: transpose               _'_: wrap with ' '
+    ^^               _c_: convolute               _\"_: wrap with \" \"
+    ^^               _i_: indent defun"
+                      ("q" nil)
+                      ;; Wrapping
+                      ("(" (lambda (_) (interactive "P") (sp-wrap-with-pair "(")))
+                      ("{" (lambda (_) (interactive "P") (sp-wrap-with-pair "{")))
+                      ("'" (lambda (_) (interactive "P") (sp-wrap-with-pair "'")))
+                      ("\"" (lambda (_) (interactive "P") (sp-wrap-with-pair "\"")))
+                      ;; Navigation
+                      ("f" sp-forward-sexp )
+                      ("b" sp-backward-sexp)
+                      ("u" sp-backward-up-sexp)
+                      ("d" sp-down-sexp)
+                      ("p" sp-backward-down-sexp)
+                      ("n" sp-up-sexp)
+                      ;; Kill/copy
+                      ("w" sp-copy-sexp)
+                      ("k" sp-kill-sexp)
+                      ;; Misc
+                      ("t" sp-transpose-sexp)
+                      ("j" sp-join-sexp)
+                      ("s" sp-split-sexp)
+                      ("c" sp-convolute-sexp)
+                      ("i" sp-indent-defun)
+                      ;; Depth changing
+                      ("R" sp-splice-sexp)
+                      ("r" sp-splice-sexp-killing-around)
+                      ("<up>" sp-splice-sexp-killing-backward)
+                      ("<down>" sp-splice-sexp-killing-forward)
+                      ;; Barfing/slurping
+                      ("<right>" sp-forward-slurp-sexp)
+                      ("<left>" sp-forward-barf-sexp)
+                      ("C-<left>" sp-backward-barf-sexp)
+                      ("C-<right>" sp-backward-slurp-sexp)))
+#+END_SRC
+**** Keybindings
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (define-key smartparens-mode-map (kbd "C-M-f") 'sp-forward-sexp)
+  (define-key smartparens-mode-map (kbd "C-M-b") 'sp-backward-sexp)
+
+  (define-key smartparens-mode-map (kbd "C-M-d") 'sp-down-sexp)
+  (define-key smartparens-mode-map (kbd "C-M-a") 'sp-backward-down-sexp)
+  (define-key smartparens-mode-map (kbd "C-S-d") 'sp-beginning-of-sexp)
+  (define-key smartparens-mode-map (kbd "C-S-a") 'sp-end-of-sexp)
+
+  (define-key smartparens-mode-map (kbd "C-M-e") 'sp-up-sexp)
+  (define-key smartparens-mode-map (kbd "C-M-u") 'sp-backward-up-sexp)
+  (define-key smartparens-mode-map (kbd "C-M-t") 'sp-transpose-sexp)
+
+  (define-key smartparens-mode-map (kbd "C-M-n") 'sp-next-sexp)
+  (define-key smartparens-mode-map (kbd "C-M-p") 'sp-previous-sexp)
+
+  (define-key smartparens-mode-map (kbd "C-M-k") 'sp-kill-sexp)
+  (define-key smartparens-mode-map (kbd "C-M-w") 'sp-copy-sexp)
+
+  (define-key smartparens-mode-map (kbd "M-<delete>") 'sp-unwrap-sexp)
+  (define-key smartparens-mode-map (kbd "M-<backspace>") 'sp-backward-unwrap-sexp)
+
+  (define-key smartparens-mode-map (kbd "C-<right>") 'sp-forward-slurp-sexp)
+  (define-key smartparens-mode-map (kbd "C-<left>") 'sp-forward-barf-sexp)
+  (define-key smartparens-mode-map (kbd "C-M-<left>") 'sp-backward-slurp-sexp)
+  (define-key smartparens-mode-map (kbd "C-M-<right>") 'sp-backward-barf-sexp)
+
+  (define-key smartparens-mode-map (kbd "M-D") 'sp-splice-sexp)
+  (define-key smartparens-mode-map (kbd "C-M-<delete>") 'sp-splice-sexp-killing-forward)
+  (define-key smartparens-mode-map (kbd "C-M-<backspace>") 'sp-splice-sexp-killing-backward)
+  (define-key smartparens-mode-map (kbd "C-S-<backspace>") 'sp-splice-sexp-killing-around)
+
+  (define-key smartparens-mode-map (kbd "C-]") 'sp-select-next-thing-exchange)
+  (define-key smartparens-mode-map (kbd "C-<left_bracket>") 'sp-select-previous-thing)
+  (define-key smartparens-mode-map (kbd "C-M-]") 'sp-select-next-thing)
+
+  (define-key smartparens-mode-map (kbd "M-F") 'sp-forward-symbol)
+  (define-key smartparens-mode-map (kbd "M-B") 'sp-backward-symbol)
+#+END_SRC
+*** Symbols
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (global-prettify-symbols-mode t)
+#+END_SRC
+*** Comments
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package comment-dwim-2
+    :ensure t
+    :bind (("M-;" . comment-dwim-2)))
+#+END_SRC
+*** Aggressive Indent
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package aggressive-indent
+    :ensure t
+    :config
+    (global-aggressive-indent-mode 1)
+    (add-to-list 'aggressive-indent-excluded-modes 'html-mode)
+    (add-to-list
+   'aggressive-indent-dont-indent-if
+   '(and (derived-mode-p 'c++-mode)
+         (null (string-match "\\([;{}]\\|\\b\\(if\\|for\\|while\\)\\b\\)"
+                             (thing-at-point 'line))))))
+   #+END_SRC
+** C/C++
+*** Style
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (defun c-lineup-arglist-tabs-only (ignored)
+    "Line up argument lists by tabs, not spaces"
+    (let* ((anchor (c-langelem-pos c-syntactic-element))
+           (column (c-langelem-2nd-pos c-syntactic-element))
+           (offset (- (1+ column) anchor))
+           (steps (floor offset c-basic-offset)))
+      (* (max steps 1)
+         c-basic-offset)))
+
+  (add-hook 'c-mode-common-hook
+            (lambda ()
+              ;; Add kernel style
+              (c-add-style
+               "linux-tabs-only"
+               '("linux" (c-offsets-alist
+                          (arglist-cont-nonempty
+                           c-lineup-gcc-asm-reg
+                           c-lineup-arglist-tabs-only))))))
+
+  (add-hook 'c-mode-hook
+            (lambda ()
+              (let ((filename (buffer-file-name)))
+                ;; Enable kernel mode for the appropriate files
+                (when (and filename
+                           (string-match (expand-file-name "~/src/linux-trees")
+                                         filename))
+                  (setq indent-tabs-mode t)
+                  (setq show-trailing-whitespace t)
+                  (c-set-style "linux-tabs-only")))))
+#+END_SRC
+*** srefactor
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package srefactor
+    :ensure t
+    :config
+    (semantic-mode 1)
+    (define-key c-mode-map (kbd "M-RET") 'srefactor-refactor-at-point)
+    (define-key c++-mode-map (kbd "M-RET") 'srefactor-refactor-at-point))
+#+END_SRC
+*** Irony
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package irony
+    :ensure t
+    :config
+    (add-hook 'c++-mode-hook 'irony-mode)
+    (add-hook 'c-mode-hook 'irony-mode)
+    (add-hook 'objc-mode-hook 'irony-mode)
+
+    (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options))
+
+  (use-package irony-eldoc
+    :ensure t
+    :config
+    (add-hook 'irony-mode-hook #'irony-eldoc))
+
+  (use-package company-irony
+    :ensure t
+    :config
+    (add-to-list 'company-backends 'company-irony))
+
+  (use-package company-irony-c-headers
+    :ensure t
+    :config
+    (add-to-list 'company-backends 'company-irony-c-headers))
+#+END_SRC
+*** RealGUD
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package realgud
+    :ensure t)
+#+END_SRC
+** ELF
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package elf-mode
+    :ensure t
+    :config
+    (elf-setup-default))
+#+END_SRC
+** Python
+#+begin_src emacs-lisp :tangle yes
+  ;; (use-package elpy
+  ;;   :ensure t
+  ;;   :config
+  ;;   (elpy-enable)
+  ;;   ;(elpy-use-ipython)
+  ;;   (setq python-shell-interpreter-args --simple-prompt" -i")
+  ;;   (setq elpy-modules (delq 'elpy-module-flymake elpy-modules)))
+#+end_src
+** ELisp
+*** ElDoc
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (add-hook 'emacs-lisp-mode-hook 'eldoc-mode)
+  (add-hook 'ielm-mode-hook 'eldoc-mode)
+#+END_SRC
+*** elisp-slime-nav
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package elisp-slime-nav
+    :ensure t
+    :config
+    (dolist (hook '(emacs-lisp-mode-hook ielm-mode-hook))
+      (add-hook hook 'turn-on-elisp-slime-nav-mode)
+      ))
+#+END_SRC
+*** hl-defined
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package highlight-defined
+    :ensure t
+    :config
+    (add-hook 'emacs-lisp-mode-hook 'highlight-defined-mode))
+#+END_SRC 
+** Common Lisp
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package slime
+    :ensure t
+    :config
+    (setq inferior-lisp-program "/usr/bin/sbcl"))
+
+  (use-package slime-company
+    :ensure t
+    :config
+    (slime-setup '(slime-fancy slime-company)))
+#+END_SRC
+** R
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package ess
+    :ensure t)
+#+END_SRC
+** Scheme
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package geiser
+    :ensure t
+    :config
+    (setq geiser-active-implementations '(guile racket)))
+#+END_SRC
+** Rust
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package rust-mode
+    :ensure t
+    :config
+    (setq rust-format-on-save t))
+
+  (use-package cargo
+    :ensure t
+    :config
+    (add-hook 'rust-mode-hook 'cargo-minor-mode))
+
+  (use-package racer
+    :ensure t
+    :config
+    (add-hook 'rust-mode-hook #'racer-mode)
+    (add-hook 'racer-mode-hook #'eldoc-mode)
+    (add-hook 'racer-mode-hook #'company-mode)
+    (setq racer-rust-src-path "/home/philip/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/src"))
+
+  (use-package flycheck-rust
+    :ensure t
+    :config
+    (add-hook 'flycheck-mode-hook #'flycheck-rust-setup))
+
+#+END_SRC
+** OCaml
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package tuareg
+    :ensure t)
+
+  (use-package merlin
+    :ensure t
+    :config
+    (add-hook 'tuareg-mode-hook 'merlin-mode))
+
+  (use-package ocp-indent
+    :ensure t)
+#+END_SRC
+*** Coq
+#+BEGIN_SRC emacs-lisp :tangle yes
+(load "~/.emacs.d/lisp/PG/generic/proof-site")
+#+END_SRC
+* Media
+** Elfeed
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package elfeed
+    :ensure t
+    :bind
+    (("C-x f" . elfeed))
+    :config
+    (setq elfeed-initial-tags '(unread))
+    (setq elfeed-max-connections 1)
+    (setq elfeed-search-title-max-width 120)
+    (setq elfeed-enclosure-default-dir "~/downloads/feeds/"))
+
+  ;; (add-hook 'elfeed-new-entry-hook
+  ;;           (elfeed-make-tagger :before "2 weeks ago"
+  ;;                               :remove 'unread))
+  ;; 
+(setq-default elfeed-search-filter "@6-weeks-ago +unread")
+
+  (use-package elfeed-org
+    :ensure t)
+  (run-with-timer 0 (* 30 60) 'elfeed-update)
+  (setq rmh-elfeed-org-auto-ignore-invalid-feeds nil)
+  (elfeed-org)
+  (setq rmh-elfeed-org-files (list "~/.emacs.d/feeds.org"))
+#+END_SRC
+*** MPV
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; (defun watch-mpv (url)
+  ;;   (start-process "elfeed-mpv" nil "mpv" url))
+
+  ;; (defun elfeed-show-watch-mpv ()
+  ;;   "Watch the current entry with mpv."
+  ;;   (interactive)
+  ;;   (let ((link (elfeed-entry-link elfeed-show-entry)))
+  ;;     (if (youtube-dl-get-id link)
+  ;;         (watch-mpv link)
+  ;;       (message "Not a Youtube Link!"))))
+
+  ;; (defun elfeed-search-watch-mpv ()
+  ;;   "Watch the current entry with mpv"
+  ;;   (interactive)
+  ;;   (let ((entries (elfeed-search-selected)))
+  ;;     (dolist (entry entries)
+  ;;        (if (not (youtube-dl-get-id (elfeed-entry-link entry)))
+  ;;           (setq entries (delq entry entries))))
+  ;;     (eval `(start-process "elfeed-mpv" nil "mpv" ,@(mapcar 'elfeed-entry-link entries)))))
+
+  ;; (define-key elfeed-show-mode-map "w" 'elfeed-show-watch-mpv)
+  ;; (define-key elfeed-search-mode-map "w" 'elfeed-search-watch-mpv)
+  ;; (define-key elfeed-show-mode-map "W" 'elfeed-show-watch-mpv)
+  ;; (define-key elfeed-search-mode-map "W" 'elfeed-search-watch-mpv)
+#+END_SRC
+
+*** youtube-dl
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; (defcustom youtube-dl-directory "~/downloads/feeds"
+  ;;   "Directory in which to run youtube-dl."
+  ;;   :group 'external)
+  ;; (setq youtube-dl-directory "~/downloads/feeds")
+
+  ;; (defcustom youtube-dl-arguments
+  ;;   '("--title" "--no-mtime" "--restrict-filenames" "--format" "mp4")
+  ;;   "Arguments to be send to youtube-dl."
+  ;;   :group 'external)
+
+  ;; (defvar youtube-dl-hosts '("www.youtube.com" "youtube.com" "youtu.be")
+  ;;   "Domain names for YouTube.")
+
+  ;; (defun youtube-dl-get-id (url)
+  ;;   "Get the YouTube video ID from URL. Returns nil for invalid URLs."
+  ;;   (let* ((obj (url-generic-parse-url url))
+  ;;          (host (url-host obj))
+  ;;          (path (url-filename obj))
+  ;;          (match (string-match-p "[-_a-zA-Z0-9]\\{11\\}" path)))
+  ;;     (when (and match (member host youtube-dl-hosts))
+  ;;       (substring path match (+ match 11)))))
+
+  ;; (defun youtube-dl-show-all ()
+  ;;   "Show all `youtube-dl-mode' buffers split in the current frame."
+  ;;   (interactive)
+  ;;   (let ((buffers (cl-loop for buffer in (buffer-list)
+  ;;                           for mode = (with-current-buffer buffer major-mode)
+  ;;                           when (eq 'youtube-dl-mode mode) collect buffer)))
+  ;;     (delete-other-windows)
+  ;;     (while (< (length (window-list)) (length buffers))
+  ;;       (split-window)
+  ;;       (balance-windows))
+  ;;     (cl-mapc (lambda (b w) (set-window-buffer w b)) buffers (window-list))))
+
+  ;; (defun youtube-dl-quit ()
+  ;;   "Kill the current if the process is complete, else bury it."
+  ;;   (interactive)
+  ;;   (if (get-buffer-process (current-buffer))
+  ;;       (quit-window)
+  ;;     (kill-buffer (current-buffer))))
+
+  ;; (defvar youtube-dl-url nil
+  ;;   "The URL being downloaded in this buffer.")
+
+  ;; (defun youtube-dl-sentinel (process event)
+  ;;   "Responds to completed youtube-dl processes."
+  ;;   (let ((buffer (process-buffer process)))
+  ;;     (with-current-buffer buffer
+  ;;       (when (string-match-p "finished" event)
+  ;;         (message "youtube-dl %s completed." (youtube-dl-get-id youtube-dl-url))
+  ;;         (kill-buffer buffer))
+  ;;       (when (string-match-p "abnormal" event)
+  ;;         (message "youtube-dl %s failed." (youtube-dl-get-id youtube-dl-url))))))
+
+  ;; (defvar youtube-dl-mode-map
+  ;;   (let ((map (make-sparse-keymap)))
+  ;;     (prog1 map
+  ;;       (define-key map "q" 'youtube-dl-quit)))
+  ;;   "Keymap for `youtube-dl-mode'.")
+
+  ;; (defun youtube-dl-mode ()
+  ;;   "Major mode for showing youtube-dl processes. You probably
+  ;; don't want to run this function directly, see `youtube-dl-download'."
+  ;;   (kill-all-local-variables)
+  ;;   (make-local-variable 'youtube-dl-url)
+  ;;   (use-local-map youtube-dl-mode-map)
+  ;;   (setq major-mode 'youtube-dl-mode
+  ;;         mode-name "youtube-dl"
+  ;;         buffer-read-only t)
+  ;;   (run-hooks 'youtube-dl-mode-hook))
+
+  ;; (defun youtube-dl-download (url)
+  ;;   "Download the video at URL with youtube-dl. Returns the buffer
+  ;; that will show progress output. The buffer is killed if the
+  ;; download completes successfully."
+  ;;   (interactive (list (read-from-minibuffer "URL: " (x-get-selection-value))))
+  ;;   (let ((id (youtube-dl-get-id url)))
+  ;;     (when id
+  ;;       (let* ((process-name (format "youtube-dl-%s" id))
+  ;;              (buffer-name (format "*youtube-dl %s*" id))
+  ;;              (buffer (get-buffer-create buffer-name)))
+  ;;         (unless (get-buffer-process buffer)
+  ;;           (with-current-buffer buffer
+  ;;             (erase-buffer)
+  ;;             (youtube-dl-mode)
+  ;;             (setq youtube-dl-url url)
+  ;;             (setq default-directory
+  ;;                   (concat (directory-file-name youtube-dl-directory) "/"))
+  ;;             (set-process-sentinel
+  ;;              (apply #'start-process process-name buffer "youtube-dl" "--newline"
+  ;;                     (append youtube-dl-arguments (list "--" id)))
+  ;;              'youtube-dl-sentinel)))
+  ;;         buffer))))
+
+  ;; (defun elfeed-show-youtube-dl ()
+  ;;   "Download the current entry with youtube-dl."
+  ;;   (interactive)
+  ;;   (pop-to-buffer (youtube-dl-download (elfeed-entry-link elfeed-show-entry))))
+
+  ;; (defun elfeed-search-youtube-dl ()
+  ;;   "Download the current entry with youtube-dl."
+  ;;   (interactive)
+  ;;   (let ((entries (elfeed-search-selected)))
+  ;;     (dolist (entry entries)
+  ;;       (if (null (youtube-dl-download (elfeed-entry-link entry)))
+  ;;           (message "Entry is not a YouTube link!")
+  ;;         (message "Downloading %s" (elfeed-entry-title entry)))
+  ;;       (elfeed-untag entry 'unread)
+  ;;       (elfeed-search-update-entry entry)
+  ;;       (unless (use-region-p) (forward-line)))))
+
+  ;; (define-key elfeed-show-mode-map "d" 'elfeed-show-youtube-dl)
+  ;; (define-key elfeed-search-mode-map "d" 'elfeed-search-youtube-dl)
+  ;; (define-key elfeed-show-mode-map "D" 'elfeed-show-youtube-dl)
+  ;; (define-key elfeed-search-mode-map "D" 'elfeed-search-youtube-dl)
+
+#+END_SRC
+** MPV
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package emms-player-mpv
+    :ensure t
+    :config
+    (add-to-list 'emms-player-list 'emms-player-mpv))
+#+END_SRC
+* TODO Productivity
+** Email
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; send-delay
+  (add-to-list 'load-path "~/.emacs.d/lisp/")
+  (load "~/.emacs.d/lisp/mu4e-send-delay/mu4e-send-delay.el")
+  (mu4e-send-delay-setup)
+  (setq mu4e-send-delay-default-delay "8m")
+  (add-hook 'mu4e-main-mode-hook 'mu4e-send-delay-initialize-send-queue-timer)
+  (add-hook 'mu4e-main-mode-hook (lambda ()
+                                   (define-key mu4e-compose-mode-map
+                                     (kbd "C-c C-c")
+                                     'mu4e-send-delay-send-and-exit)))
+
+
+  (setq mu4e-view-show-images t)
+  (setq mu4e-view-show-addresses t)
+  (setq mu4e-attachment-dir "~/downloads/attachments")
+  (setq mu4e-headers-skip-duplicates t)
+  (setq mu4e-update-interval 600)
+
+  ;; (add-hook 'message-send-hook
+  ;;           (lambda ()
+  ;;             (unless (yes-or-no-p "Sure you want to send this?")
+  ;;               (signal 'quit nil))))
+
+  (global-set-key (kbd "C-x m") 'mu4e)
+  (setq mu4e-maildir "~/.mail")
+  (setq mu4e-sent-messages-behavior 'delete)
+  (setq mu4e-get-mail-command "mbsync -a")
+  (setq user-full-name "Philip Adams")
+  (setq mu4e-change-filenames-when-moving t)
+
+  ;; Postfix
+  ;; (setq message-send-mail-function 'message-send-mail-with-sendmail)
+  ;; (setq send-mail-function 'sendmail-send-it)
+
+  (require 'smtpmail)
+  (setq message-send-mail-function 'smtpmail-send-it      
+        smtpmail-stream-type 'ssl
+        smtpmail-default-smtp-server "smtp.gmail.com"
+        smtpmail-smtp-server "smtp.gmail.com"
+        smtpmail-smtp-service 465)
+  (setq smtpmail-queue-dir "~/.mail/queue/cur")
+
+  (add-hook 'message-mode-hook 'turn-on-orgtbl)
+  (add-hook 'message-mode-hook 'turn-on-orgstruct++)
+  ;; (add-hook 'mu4e-compose-mode-hook 'org~mu4e-mime-switch-headers-or-body) 
+
+  (setq message-kill-buffer-on-exit t)
+
+  (setq mu4e-user-mail-address-list '("padams2345@gmail.com" "pa.yrdz@gmail.com" "pbadams@uchicago.edu"))
+
+  (setq mu4e-compose-signature "Philip")
+  (setq message-kill-buffer-on-exit t)
+
+  (setq mu4e-maildir-shortcuts
+        '(("/main/inbox" . ?a)
+          ("/main/sent" . ?s)
+          ("/main/archive" . ?d)
+          ("/alt/inbox" . ?f)
+          ("/alt/sent" . ?g)
+          ("/alt/archive" . ?h)
+          ("/school/inbox" . ?j)
+          ("/school/sent" . ?k)
+          ("/school/archive" . ?l)))
+
+  (setq mu4e-contexts
+        `( ,(make-mu4e-context
+             :name "main"
+             :enter-func (lambda () (mu4e-message "Switch to the main context"))
+             :match-func (lambda (msg)
+                          (when msg 
+                            (mu4e-message-contact-field-matches msg 
+                                                                :to "padams2345@gmail.com")))
+             :vars '( (user-mail-address . "padams2345@gmail.com")
+                      (smtpmail-smtp-user . "padams2345@gmail.com")
+                      (smtpmail-smtp-server . "smtp.gmail.com")
+                      (mu4e-sent-folder . "/main/sent")
+                      (mu4e-drafts-folder . "/main/drafts")
+                      (mu4e-trash-folder . "/main/trash")
+                      (mu4e-refile-folder . "/main/archive")
+                      ))
+           ,(make-mu4e-context
+             :name "alt"
+             :enter-func (lambda () (mu4e-message "Switch to the alt context"))
+             :match-func (lambda (msg)
+                          (when msg 
+                            (mu4e-message-contact-field-matches msg 
+                                                                :to "pa.yrdz@gmail.com")))
+             :vars '( (user-mail-address . "pa.yrdz@gmail.com")
+                      (smtpmail-smtp-user . "pa.yrdz@gmail.com")
+                      (smtpmail-smtp-server . "smtp.gmail.com")
+                      (mu4e-sent-folder . "/alt/sent")
+                      (mu4e-drafts-folder . "/alt/drafts")
+                      (mu4e-trash-folder . "/alt/trash")
+                      (mu4e-refile-folder . "/alt/archive")
+                      ))
+           ,(make-mu4e-context
+             :name "school"
+             :enter-func (lambda () (mu4e-message "Switch to the school context"))
+             :match-func (lambda (msg)
+                          (when msg 
+                            (mu4e-message-contact-field-matches msg 
+                                                                :to "pbadams@uchicago.edu")))
+             :vars '( (user-mail-address . "pbadams@uchicago.edu")
+                      (smtpmail-smtp-user . "pbadams")
+                      (smtpmail-smtp-server . "authsmtp.uchicago.edu")
+                      (mu4e-sent-folder . "/school/sent")
+                      (mu4e-drafts-folder . "/school/drafts")
+                      (mu4e-trash-folder . "/school/trash")
+                      (mu4e-refile-folder . "/school/archive")
+                      ))))
+
+  (setq mu4e-context-policy 'ask)
+  (setq mu4e-compose-context-policy 'always-ask)
+#+END_SRC
+
+*** TODO Encrypt passwords
+*** org-mu4e
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (require 'org-mu4e)
+  (setq org-mu4e-link-query-in-headers-mode nil)
+
+  (define-key mu4e-headers-mode-map (kbd "C-c c") 'org-mu4e-store-and-capture)
+  (define-key mu4e-view-mode-map    (kbd "C-c c") 'org-mu4e-store-and-capture)
+#+END_SRC
+** TODO Org
+*** General
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (global-set-key (kbd "C-c c") 'org-capture)
+  (global-set-key (kbd "C-c a") 'org-agenda)
+  (setq org-use-speed-commands t)
+  (setq org-latex-listings t)
+  ;(run-at-time "06:00" 86400 '(lambda () (setq org-habit-show-habits t)))
+  (setq org-log-done 'time)
+  (setq org-catch-invisible-edits 'show-and-error)
+  (setq org-modules '(org-eww org-bbdb org-bibtex org-docview org-gnus org-habit org-id org-info org-irc org-mhe org-mouse org-protocol org-rmail org-w3m org-annotate-file org-collector org-drill org-elisp-symbol org-man))
+  (org-load-modules-maybe t)
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package org-alert
+    :ensure t
+    :config
+    (org-alert-enable))
+#+END_SRC
+*** Agenda
+**** Files
+
+#+BEGIN_SRC emacs-lisp  :tangle yes
+  (use-package org-gcal
+    :ensure t)
+
+
+  (add-hook 'org-agenda-mode-hook (lambda () (org-gcal-sync)))
+  (add-hook 'org-capture-after-finalize-hook (lambda () (org-gcal-sync) ))
+
+
+  (setq org-agenda-files (list "~/.org/gcal.org"
+                               "~/.org/todo.org"
+                               "~/.org/refile.org"
+                               "~/.org/work.org"
+  ;                             "~/documents/text/references/notes.org"
+                               "~/.emacs.d/"))
+
+
+  (setq org-default-notes-file "~/.org/notes.org")
+
+  (defun org-summary-todo (n-done n-not-done)
+    "Switch entry to DONE when all subentries are done, to TODO otherwise."
+    (let (org-log-done org-log-states)   ; turn off logging
+      (org-todo (if (= n-not-done 0) "DONE" "TODO"))))
+
+  (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
+  (setq org-agenda-todo-list-sublevels nil)
+#+END_SRC
+
+***** TODO Org Projectile
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package org-projectile
+    :ensure t
+    :config
+    (org-projectile:per-repo)
+    (setq org-projectile:per-repo-filename "todo.org")
+    (setq org-agenda-files (append org-agenda-files (org-projectile:todo-files)))
+    (setq org-agenda-not-gcal (remove "~/.org/gcal.org" org-agenda-files))
+    :bind
+    (:map projectile-command-map ("n" . org-projectile:project-todo-completing-read))
+    (:map projectile-command-map ("f" . counsel-projectile-find-file)))
+#+END_SRC
+**** Keywords
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (setq org-todo-keywords
+        (quote ((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d)")
+                (sequence "WAITING(w@/!)" "HOLD(h@/!)" "|" "CANCELLED(c@/!)" "PHONE"))))
+
+  (setq org-todo-keyword-faces
+        (quote (("TODO" :foreground "#dc322f" :weight bold)
+                ("NEXT" :foreground "#268bd2" :weight bold)
+                ("DONE" :foreground "#859900" :weight bold)
+                ("WAITING" :foreground "#cb4b16" :weight bold)
+                ("HOLD" :foreground "#d33682" :weight bold)
+                ("CANCELLED" :foreground "#859900" :weight bold)                
+                ("PHONE" :foreground "#859900" :weight bold))))
+
+  (setq org-use-fast-todo-selection t)
+  (setq org-treat-S-cursor-todo-selection-as-state-change nil)
+
+  (setq org-todo-state-tags-triggers
+        (quote (("CANCELLED" ("CANCELLED" . t))
+                ("WAITING" ("WAITING" . t))
+                ("HOLD" ("WAITING") ("HOLD" . t))
+                (done ("WAITING") ("HOLD"))
+                ("TODO" ("WAITING") ("CANCELLED") ("HOLD"))
+                ("NEXT" ("WAITING") ("CANCELLED") ("HOLD"))
+                ("DONE" ("WAITING") ("CANCELLED") ("HOLD")))))
+#+END_SRC
+**** Diary
+#+BEGIN_SRC emacs-lisp :tangle yes
+(setq org-agenda-include-diary t)
+(setq calendar-latitude 38.6242859)
+(setq calendar-longitude -90.3658351)
+#+END_SRC
+***** TODO Fix Location (Chicago)
+*** Capture
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (setq org-capture-templates
+        '(("b" "Books" entry (file+headline "~/.org/notes.org" "Book List")
+           "* %u %^{Title} - %^{Author}\n:PROPERTIES:\n:ISBN: %^{ISBN}\n:END:\n\n** Thoughts\n%?\n** Favorite Quote(s)\n\n** Rating\n%^{Rating (out of 5)}/5\n\n")
+          ("t" "Task" entry (file "~/.org/refile.org")
+           "* TODO %?\nSCHEDULED: %^t\n%U\n%a\n" :prepend :clock-in t :clock-resume t)
+          ("d" "Deadline" entry (file "~/.org/refile.org")
+           "* TODO %?\nDEADLINE: %^t\n%U\n%a\n" :prepend :clock-in t :clock-resume t)
+          ("j" "Journal" entry (file+datetree "~/.org/notes.org")
+           "* %^{Summary}\n%?\n\nEntered %U\n%i\n%a\n\n" :clock-in t :clock-resume t)
+          ("r" "Respond" entry (file "~/.org/refile.org")
+           "* NEXT Respond to %:from about %:subject\nSCHEDULED: %t\n%U\n%a\n" :prepend :clock-in t :clock-resume t :immediate-finish t)
+          ("p" "Phone call" entry (file "~/.org/refile.org")
+           "* PHONE %? :PHONE:\n%U" :clock-in t :clock-resume t)
+          ("c" "Class" entry (file "~/org/refile.org")
+           "* CLASS %t %^G\n%? :CLASS:\n%U" :clock-in t :clock-resume t)
+          ("w" "org-protocol" entry (file "~/.org/refile.org")
+           "* TODO Review %c\n%U\n" :immediate-finish t)
+          ("h" "Habit" entry (file "~/.org/refile.org")
+           "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n")
+          ("a"               ; key
+           "Article"         ; name
+           entry             ; type
+           (file+headline "~/.org/refile.org" "Article")  ; target
+           "* %^{Title} %(org-set-tags)  :article: \n:PROPERTIES:\n:Created: %U\n:Linked: %A\n:END:\n%i\nBrief description:\n%?"  ; template
+           :prepend t        ; properties
+           :empty-lines 1    ; properties
+           :created t        ; properties
+           )
+          ))
+
+  (setq org-refile-targets '((org-agenda-not-gcal :maxlevel . 3)))
+
+#+END_SRC
+*** Bullet
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package org-bullets
+    :ensure t
+    :config
+    (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
+#+END_SRC
+*** Hydra
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (defhydra hydra-org-template (:color blue :hint nil)
+
+   "
+   _c_enter  _q_uote     _e_macs-lisp    _L_aTeX:
+   _l_atex   _E_xample   _p_erl          _i_ndex:
+   _a_scii   _v_erse     _P_erl tangled  _I_NCLUDE:
+   _s_rc     _n_ote      plant_u_ml      _H_TML:
+   _h_tml    ^ ^         ^ ^             _A_SCII:
+  "
+    ("s" (hot-expand "<s"))
+    ("E" (hot-expand "<e"))
+    ("q" (hot-expand "<q"))
+    ("v" (hot-expand "<v"))
+    ("n" (let (text) ; org-reveal speaker notes
+           (when (region-active-p)
+             (setq text (buffer-substring (region-beginning) (region-end)))
+             (delete-region (region-beginning) (region-end)))
+           (insert "#+BEGIN_NOTES\n\n#+END_NOTES")
+           (forward-line -1)
+           (when text (insert text))))
+    ("c" (hot-expand "<c"))
+    ("l" (hot-expand "<l"))
+    ("h" (hot-expand "<h"))
+    ("a" (hot-expand "<a"))
+    ("L" (hot-expand "<L"))
+    ("i" (hot-expand "<i"))
+    ("e" (hot-expand "<s" "emacs-lisp"))
+    ("p" (hot-expand "<s" "perl"))
+    ("u" (hot-expand "<s" "plantuml :file CHANGE.png"))
+    ("P" (hot-expand "<s" "perl" ":results output :exports both :shebang \"#!/usr/bin/env perl\"\n"))
+    ("I" (hot-expand "<I"))
+    ("H" (hot-expand "<H"))
+    ("A" (hot-expand "<A"))
+    ("<" self-insert-command "ins")
+    ("o" nil "quit"))
+
+  (defun hot-expand (str &optional mod header)
+    "Expand org template.
+
+  STR is a structure template string recognised by org like <s. MOD is a
+  string with additional parameters to add the begin line of the
+  structure element. HEADER string includes more parameters that are
+  prepended to the element after the #+HEADERS: tag."
+    (let (text)
+      (when (region-active-p)
+        (setq text (buffer-substring (region-beginning) (region-end)))
+        (delete-region (region-beginning) (region-end))
+        (deactivate-mark))
+      (when header (insert "#+HEADERS: " header))
+      (insert str)
+      (org-try-structure-completion)
+      (when mod (insert mod) (forward-line))
+      (when text (insert text))))
+
+    (define-key org-mode-map "<"
+      (lambda () (interactive)
+        (if (or (region-active-p) (looking-back "^"))
+            (hydra-org-template/body)
+          (self-insert-command 1))))
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (bind-key "C-c w" 'hydra-org-clock/body)
+   (defhydra hydra-org-clock (:color blue :hint nil)
+     "
+  ^Clock:^ ^In/out^     ^Edit^   ^Summary^    | ^Timers:^ ^Run^           ^Insert
+  -^-^-----^-^----------^-^------^-^----------|--^-^------^-^-------------^------
+  (_?_)    _i_n         _e_dit   _g_oto entry | (_z_)     re_l_ative      ti_m_e
+   ^ ^     _c_ontinue   _q_uit   _d_isplay    |  ^ ^      cou_n_tdown     i_t_em
+   ^ ^     _o_ut        ^ ^      _r_eport     |  ^ ^      _p_ause toggle
+   ^ ^     ^ ^          ^ ^      ^ ^          |  ^ ^      _s_top
+  "
+     ("i" org-clock-in)
+     ("c" org-clock-in-last)
+     ("o" org-clock-out)
+   
+     ("e" org-clock-modify-effort-estimate)
+     ("q" org-clock-cancel)
+
+     ("g" org-clock-goto)
+     ("d" org-clock-display)
+     ("r" org-clock-report)
+     ("?" (org-info "Clocking commands"))
+
+    ("l" org-timer-start)
+    ("n" org-timer-set-timer)
+    ("p" org-timer-pause-or-continue)
+    ("s" org-timer-stop)
+
+    ("m" org-timer)
+    ("t" org-timer-item)
+    ("z" (org-info "Timers")))
+#+END_SRC
+*** org-download 
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package org-download
+    :ensure t
+    :config
+    (setq org-download-method 'attach))
+#+END_SRC
+*** TODO Clocking
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;;
+  ;; Resume clocking task when emacs is restarted
+  (org-clock-persistence-insinuate)
+  ;;
+  ;; Show lot of clocking history so it's easy to pick items off the C-F11 list
+  (setq org-clock-history-length 23)
+  ;; Resume clocking task on clock-in if the clock is open
+  (setq org-clock-in-resume t)
+  ;; Change tasks to NEXT when clocking in
+  (setq org-clock-in-switch-to-state 'bh/clock-in-to-next)
+  ;; Separate drawers for clocking and logs
+  (setq org-drawers (quote ("PROPERTIES" "LOGBOOK")))
+  ;; Save clock data and state changes and notes in the LOGBOOK drawer
+  (setq org-clock-into-drawer t)
+  ;; Sometimes I change tasks I'm clocking quickly - this removes clocked tasks with 0:00 duration
+  (setq org-clock-out-remove-zero-time-clocks t)
+  ;; Clock out when moving task to a done state
+  (setq org-clock-out-when-done t)
+  ;; Save the running clock and all clock history when exiting Emacs, load it on startup
+  (setq org-clock-persist t)
+  ;; Do not prompt to resume an active clock
+  (setq org-clock-persist-query-resume nil)
+  ;; Enable auto clock resolution for finding open clocks
+  (setq org-clock-auto-clock-resolution (quote when-no-clock-is-running))
+  ;; Include current clocking task in clock reports
+  (setq org-clock-report-include-clocking-task t)
+
+  (setq bh/keep-clock-running nil)
+
+  (defun bh/clock-in-to-next (kw)
+    "Switch a task from TODO to NEXT when clocking in.
+  Skips capture tasks, projects, and subprojects.
+  Switch projects and subprojects from NEXT back to TODO"
+    (when (not (and (boundp 'org-capture-mode) org-capture-mode))
+      (cond
+       ((and (member (org-get-todo-state) (list "TODO"))
+             (bh/is-task-p))
+        "NEXT")
+       ((and (member (org-get-todo-state) (list "NEXT"))
+             (bh/is-project-p))
+        "TODO"))))
+
+  (defun bh/find-project-task ()
+    "Move point to the parent (project) task if any"
+    (save-restriction
+      (widen)
+      (let ((parent-task (save-excursion (org-back-to-heading 'invisible-ok) (point))))
+        (while (org-up-heading-safe)
+          (when (member (nth 2 (org-heading-components)) org-todo-keywords-1)
+            (setq parent-task (point))))
+        (goto-char parent-task)
+        parent-task)))
+
+  (defun bh/punch-in (arg)
+    "Start continuous clocking and set the default task to the
+  selected task.  If no task is selected set the Organization task
+  as the default task."
+    (interactive "p")
+    (setq bh/keep-clock-running t)
+    (if (equal major-mode 'org-agenda-mode)
+        ;;
+        ;; We're in the agenda
+        ;;
+        (let* ((marker (org-get-at-bol 'org-hd-marker))
+               (tags (org-with-point-at marker (org-get-tags-at))))
+          (if (and (eq arg 4) tags)
+              (org-agenda-clock-in '(16))
+            (bh/clock-in-organization-task-as-default)))
+      ;;
+      ;; We are not in the agenda
+      ;;
+      (save-restriction
+        (widen)
+        ; Find the tags on the current task
+        (if (and (equal major-mode 'org-mode) (not (org-before-first-heading-p)) (eq arg 4))
+            (org-clock-in '(16))
+          (bh/clock-in-organization-task-as-default)))))
+
+  (defun bh/punch-out ()
+    (interactive)
+    (setq bh/keep-clock-running nil)
+    (when (org-clock-is-active)
+      (org-clock-out))
+    (org-agenda-remove-restriction-lock))
+
+  (defun bh/clock-in-default-task ()
+    (save-excursion
+      (org-with-point-at org-clock-default-task
+        (org-clock-in))))
+
+  (defun bh/clock-in-parent-task ()
+    "Move point to the parent (project) task if any and clock in"
+    (let ((parent-task))
+      (save-excursion
+        (save-restriction
+          (widen)
+          (while (and (not parent-task) (org-up-heading-safe))
+            (when (member (nth 2 (org-heading-components)) org-todo-keywords-1)
+              (setq parent-task (point))))
+          (if parent-task
+              (org-with-point-at parent-task
+                (org-clock-in))
+            (when bh/keep-clock-running
+              (bh/clock-in-default-task)))))))
+
+  (defvar bh/organization-task-id "eb155a82-92b2-4f25-a3c6-0304591af2f9")
+
+  (defun bh/clock-in-organization-task-as-default ()
+    (interactive)
+    (org-with-point-at (org-id-find bh/organization-task-id 'marker)
+      (org-clock-in '(16))))
+
+  (defun bh/clock-out-maybe ()
+    (when (and bh/keep-clock-running
+               (not org-clock-clocking-in)
+               (marker-buffer org-clock-default-task)
+               (not org-clock-resolving-clocks-due-to-idleness))
+      (bh/clock-in-parent-task)))
+
+  (add-hook 'org-clock-out-hook 'bh/clock-out-maybe 'append)
+#+END_SRC
+**** TODO Organization Task ID
+*** Helper Functions
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (defun bh/is-project-p ()
+    "Any task with a todo keyword subtask"
+    (save-restriction
+      (widen)
+      (let ((has-subtask)
+            (subtree-end (save-excursion (org-end-of-subtree t)))
+            (is-a-task (member (nth 2 (org-heading-components)) org-todo-keywords-1)))
+        (save-excursion
+          (forward-line 1)
+          (while (and (not has-subtask)
+                      (< (point) subtree-end)
+                      (re-search-forward "^\*+ " subtree-end t))
+            (when (member (org-get-todo-state) org-todo-keywords-1)
+              (setq has-subtask t))))
+        (and is-a-task has-subtask))))
+
+  (defun bh/is-project-subtree-p ()
+    "Any task with a todo keyword that is in a project subtree.
+  Callers of this function already widen the buffer view."
+    (let ((task (save-excursion (org-back-to-heading 'invisible-ok)
+                                (point))))
+      (save-excursion
+        (bh/find-project-task)
+        (if (equal (point) task)
+            nil
+          t))))
+
+  (defun bh/is-task-p ()
+    "Any task with a todo keyword and no subtask"
+    (save-restriction
+      (widen)
+      (let ((has-subtask)
+            (subtree-end (save-excursion (org-end-of-subtree t)))
+            (is-a-task (member (nth 2 (org-heading-components)) org-todo-keywords-1)))
+        (save-excursion
+          (forward-line 1)
+          (while (and (not has-subtask)
+                      (< (point) subtree-end)
+                      (re-search-forward "^\*+ " subtree-end t))
+            (when (member (org-get-todo-state) org-todo-keywords-1)
+              (setq has-subtask t))))
+        (and is-a-task (not has-subtask)))))
+
+  (defun bh/is-subproject-p ()
+    "Any task which is a subtask of another project"
+    (let ((is-subproject)
+          (is-a-task (member (nth 2 (org-heading-components)) org-todo-keywords-1)))
+      (save-excursion
+        (while (and (not is-subproject) (org-up-heading-safe))
+          (when (member (nth 2 (org-heading-components)) org-todo-keywords-1)
+            (setq is-subproject t))))
+      (and is-a-task is-subproject)))
+
+  (defun bh/list-sublevels-for-projects-indented ()
+    "Set org-tags-match-list-sublevels so when restricted to a subtree we list all subtasks.
+    This is normally used by skipping functions where this variable is already local to the agenda."
+    (if (marker-buffer org-agenda-restrict-begin)
+        (setq org-tags-match-list-sublevels 'indented)
+      (setq org-tags-match-list-sublevels nil))
+    nil)
+
+  (defun bh/list-sublevels-for-projects ()
+    "Set org-tags-match-list-sublevels so when restricted to a subtree we list all subtasks.
+    This is normally used by skipping functions where this variable is already local to the agenda."
+    (if (marker-buffer org-agenda-restrict-begin)
+        (setq org-tags-match-list-sublevels t)
+      (setq org-tags-match-list-sublevels nil))
+    nil)
+
+  (defvar bh/hide-scheduled-and-waiting-next-tasks t)
+
+  (defun bh/toggle-next-task-display ()
+    (interactive)
+    (setq bh/hide-scheduled-and-waiting-next-tasks (not bh/hide-scheduled-and-waiting-next-tasks))
+    (when  (equal major-mode 'org-agenda-mode)
+      (org-agenda-redo))
+    (message "%s WAITING and SCHEDULED NEXT Tasks" (if bh/hide-scheduled-and-waiting-next-tasks "Hide" "Show")))
+
+  (defun bh/skip-stuck-projects ()
+    "Skip trees that are not stuck projects"
+    (save-restriction
+      (widen)
+      (let ((next-headline (save-excursion (or (outline-next-heading) (point-max)))))
+        (if (bh/is-project-p)
+            (let* ((subtree-end (save-excursion (org-end-of-subtree t)))
+                   (has-next ))
+              (save-excursion
+                (forward-line 1)
+                (while (and (not has-next) (< (point) subtree-end) (re-search-forward "^\\*+ NEXT " subtree-end t))
+                  (unless (member "WAITING" (org-get-tags-at))
+                    (setq has-next t))))
+              (if has-next
+                  nil
+                next-headline)) ; a stuck project, has subtasks but no next task
+          nil))))
+
+  (defun bh/skip-non-stuck-projects ()
+    "Skip trees that are not stuck projects"
+    ;; (bh/list-sublevels-for-projects-indented)
+    (save-restriction
+      (widen)
+      (let ((next-headline (save-excursion (or (outline-next-heading) (point-max)))))
+        (if (bh/is-project-p)
+            (let* ((subtree-end (save-excursion (org-end-of-subtree t)))
+                   (has-next ))
+              (save-excursion
+                (forward-line 1)
+                (while (and (not has-next) (< (point) subtree-end) (re-search-forward "^\\*+ NEXT " subtree-end t))
+                  (unless (member "WAITING" (org-get-tags-at))
+                    (setq has-next t))))
+              (if has-next
+                  next-headline
+                nil)) ; a stuck project, has subtasks but no next task
+          next-headline))))
+
+  (defun bh/skip-non-projects ()
+    "Skip trees that are not projects"
+    ;; (bh/list-sublevels-for-projects-indented)
+    (if (save-excursion (bh/skip-non-stuck-projects))
+        (save-restriction
+          (widen)
+          (let ((subtree-end (save-excursion (org-end-of-subtree t))))
+            (cond
+             ((bh/is-project-p)
+              nil)
+             ((and (bh/is-project-subtree-p) (not (bh/is-task-p)))
+              nil)
+             (t
+              subtree-end))))
+      (save-excursion (org-end-of-subtree t))))
+
+  (defun bh/skip-non-tasks ()
+    "Show non-project tasks.
+  Skip project and sub-project tasks, habits, and project related tasks."
+    (save-restriction
+      (widen)
+      (let ((next-headline (save-excursion (or (outline-next-heading) (point-max)))))
+        (cond
+         ((bh/is-task-p)
+          nil)
+         (t
+          next-headline)))))
+
+  (defun bh/skip-project-trees-and-habits ()
+    "Skip trees that are projects"
+    (save-restriction
+      (widen)
+      (let ((subtree-end (save-excursion (org-end-of-subtree t))))
+        (cond
+         ((bh/is-project-p)
+          subtree-end)
+         ((org-is-habit-p)
+          subtree-end)
+         (t
+          nil)))))
+
+  (defun bh/skip-projects-and-habits-and-single-tasks ()
+    "Skip trees that are projects, tasks that are habits, single non-project tasks"
+    (save-restriction
+      (widen)
+      (let ((next-headline (save-excursion (or (outline-next-heading) (point-max)))))
+        (cond
+         ((org-is-habit-p)
+          next-headline)
+         ((and bh/hide-scheduled-and-waiting-next-tasks
+               (member "WAITING" (org-get-tags-at)))
+          next-headline)
+         ((bh/is-project-p)
+          next-headline)
+         ((and (bh/is-task-p) (not (bh/is-project-subtree-p)))
+          next-headline)
+         (t
+          nil)))))
+
+  (defun bh/skip-project-tasks-maybe ()
+    "Show tasks related to the current restriction.
+  When restricted to a project, skip project and sub project tasks, habits, NEXT tasks, and loose tasks.
+  When not restricted, skip project and sub-project tasks, habits, and project related tasks."
+    (save-restriction
+      (widen)
+      (let* ((subtree-end (save-excursion (org-end-of-subtree t)))
+             (next-headline (save-excursion (or (outline-next-heading) (point-max))))
+             (limit-to-project (marker-buffer org-agenda-restrict-begin)))
+        (cond
+         ((bh/is-project-p)
+          next-headline)
+         ((org-is-habit-p)
+          subtree-end)
+         ((and (not limit-to-project)
+               (bh/is-project-subtree-p))
+          subtree-end)
+         ((and limit-to-project
+               (bh/is-project-subtree-p)
+               (member (org-get-todo-state) (list "NEXT")))
+          subtree-end)
+         (t
+          nil)))))
+
+  (defun bh/skip-project-tasks ()
+    "Show non-project tasks.
+  Skip project and sub-project tasks, habits, and project related tasks."
+    (save-restriction
+      (widen)
+      (let* ((subtree-end (save-excursion (org-end-of-subtree t))))
+        (cond
+         ((bh/is-project-p)
+          subtree-end)
+         ((org-is-habit-p)
+          subtree-end)
+         ((bh/is-project-subtree-p)
+          subtree-end)
+         (t
+          nil)))))
+
+  (defun bh/skip-non-project-tasks ()
+    "Show project tasks.
+  Skip project and sub-project tasks, habits, and loose non-project tasks."
+    (save-restriction
+      (widen)
+      (let* ((subtree-end (save-excursion (org-end-of-subtree t)))
+             (next-headline (save-excursion (or (outline-next-heading) (point-max)))))
+        (cond
+         ((bh/is-project-p)
+          next-headline)
+         ((org-is-habit-p)
+          subtree-end)
+         ((and (bh/is-project-subtree-p)
+               (member (org-get-todo-state) (list "NEXT")))
+          subtree-end)
+         ((not (bh/is-project-subtree-p))
+          subtree-end)
+         (t
+          nil)))))
+
+  (defun bh/skip-projects-and-habits ()
+    "Skip trees that are projects and tasks that are habits"
+    (save-restriction
+      (widen)
+      (let ((subtree-end (save-excursion (org-end-of-subtree t))))
+        (cond
+         ((bh/is-project-p)
+          subtree-end)
+         ((org-is-habit-p)
+          subtree-end)
+         (t
+          nil)))))
+
+  (defun bh/skip-non-subprojects ()
+    "Skip trees that are not projects"
+    (let ((next-headline (save-excursion (outline-next-heading))))
+      (if (bh/is-subproject-p)
+          nil
+        next-headline)))
+
+  (defmacro η (fnc)
+    "Return function that ignores its arguments and invokes FNC."
+    `(lambda (&rest _rest)
+       (funcall ,fnc)))
+
+  (advice-add 'org-deadline       :after (η #'org-save-all-org-buffers))
+  (advice-add 'org-schedule       :after (η #'org-save-all-org-buffers))
+  (advice-add 'org-store-log-note :after (η #'org-save-all-org-buffers))
+  (advice-add 'org-todo           :after (η #'org-save-all-org-buffers))
+
+
+#+END_SRC
+** ERC
+*** Passwords
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (defun my-erc () (interactive) (progn
+                                   (erc-tls :server "irc.freenode.net" :port 7000
+                                            :nick "pbadams")
+                                   (erc-tls :server "irc.mozilla.org" :port 6697
+                                            :nick "pbadams")))
+#+END_SRC
+*** Modules
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package erc-hl-nicks
+    :ensure t)
+
+  (use-package erc-image
+    :ensure t)
+
+  (use-package erc-tweet
+    :ensure t)
+
+  (use-package erc-view-log
+    :ensure t)
+
+  (use-package erc-youtube
+    :ensure t)
+
+  (setq erc-modules (quote (autojoin button completion dcc fill list match menu move-to-prompt netsplit networks noncommands readonly ring scrolltobottom stamp spelling track hl-nicks youtube tweet image)))
+#+END_SRC
+*** General Config
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (setq erc-button-wrap-long-urls t)
+  (setq erc-dcc-get-default-directory "~/downloads")
+  (setq erc-fill-column 100)
+  (setq erc-fill-function (quote erc-fill-variable))
+  (setq erc-fill-prefix nil)
+  (setq erc-fill-static-center 20)
+  (setq erc-fill-variable-maximum-indentation 25)
+  (setq erc-format-nick-function (quote erc-format-@nick))
+  (setq erc-hide-list (quote ("JOIN" "NICK" "PART" "QUIT")))
+  (setq erc-hl-nicks-mode t)
+  (setq erc-insert-timestamp-function (quote erc-insert-timestamp-left))
+  (setq erc-interpret-mirc-color t)
+  (setq erc-irccontrols-mode t)
+  (setq erc-max-buffer-size 20000)
+  (setq erc-nick "yrdz")
+  (setq erc-prompt " >>> ")
+  (setq erc-timestamp-format " %H:%M ")
+  (setq erc-timestamp-format-left " %H:%M")
+  (setq erc-truncate-buffer-on-save t)
+  (setq erc-auto-query 'buffer)
+#+END_SRC
+*** Tracking
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (setq erc-track-exclude-types '("JOIN" "NICK" "PART" "QUIT" "MODE"
+                                      "324" "329" "332" "333" "353" "477"))
+
+  (setq erc-format-query-as-channel-p t erc-track-priority-faces-only
+          'all erc-track-faces-priority-list '(erc-error-face
+          erc-current-nick-face erc-keyword-face erc-nick-msg-face
+          erc-direct-msg-face erc-dangerous-host-face erc-notice-face
+          erc-prompt-face))
+
+  (setq erc-track-position-in-mode-line t)
+#+END_SRC
+*** Ignore DCC Spam
+#+BEGIN_SRC emacs-lisp :tangle yes
+(defcustom erc-foolish-content '("[!@][Ff][Ii][Nn][Dd].*")
+      "Regular expressions to identify foolish content.
+    Usually what happens is that you add the bots to
+    `erc-ignore-list' and the bot commands to this list."
+      :group 'erc
+      :type '(repeat regexp))
+
+(defun erc-foolish-content (msg)
+  "Check whether MSG is foolish."
+  (erc-list-match erc-foolish-content msg))
+
+(add-hook 'erc-insert-pre-hook
+	        (lambda (s)
+		  (when (erc-foolish-content s)
+		      (setq erc-insert-this nil))))
+
+#+END_SRC
+*** NCM
+#+BEGIN_SRC emacs-lisp :tangle yes
+(define-minor-mode ncm-mode "" nil
+ (:eval
+  (let ((ops 0)
+	(voices 0)
+	(members 0))
+    (maphash (lambda (key value)
+	       (when (erc-channel-user-op-p key)
+		 (setq ops (1+ ops)))
+	       (when (erc-channel-user-voice-p key)
+		 (setq voices (1+ voices)))
+	       (setq members (1+ members)))
+	     erc-channel-users)
+    (format " %S/%S/%S" ops voices members))))
+
+(add-hook 'erc-mode-hook 'ncm-mode)
+#+END_SRC
+*** Channels
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (setq erc-autojoin-timing 'ident)
+  (setq erc-autojoin-delay 30)
+  (setq erc-prompt-for-password nil)
+  (setq erc-autojoin-channels-alist
+        '(("freenode.net" "#archlinux" "#archlinux-offtopic" "#r/linux" "#lisp" "#guix" "#scheme" "#haskell" "##programming" "##linux" "#emacs" "#guile" "#stumpwm" "##math")
+          ("mozilla.org" "#rust" "#rust-beginners" "#rust-osdev" "#rust-gamedev")))
+#+END_SRC
+** LaTeX
+*** General
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (setq TeX-auto-save t)
+  (setq TeX-parse-self t)
+  (setq-default TeX-master nil)
+  (setq reftex-plug-into-AUCTeX t)
+  (setq TeX-save-query nil)
+  (add-hook 'LaTeX-mode-hook 'turn-on-reftex)
+  (setq TeX-source-correlate-mode t)
+  (setq TeX-source-correlate-start-server t)
+  (add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
+#+END_SRC
+*** pdf-tools
+#+begin_src emacs-lisp :tangle yes
+  (use-package pdf-tools
+    :ensure t
+    :config
+    (pdf-tools-install)
+    (setq-default pdf-view-display-size 'fit-page)
+    (setq pdf-annot-activate-created-annotations t)
+    (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer)
+    :bind
+    (:map pdf-view-mode-map
+          ("C-s" . isearch-forward)
+          ("?" . hydra-pdftools/body)
+          ("<s-spc>" .  pdf-view-scroll-down-or-next-page)
+          ("g"  . pdf-view-first-page)
+          ("G"  . pdf-view-last-page)
+          ("l"  . image-forward-hscroll)
+          ("h"  . image-backward-hscroll)
+          ("j"  . pdf-view-next-page)
+          ("k"  . pdf-view-previous-page)
+          ("e"  . pdf-view-goto-page)
+          ("u"  . pdf-view-revert-buffer)
+          ("al" . pdf-annot-list-annotations)
+          ("ad" . pdf-annot-delete)
+          ("aa" . pdf-annot-attachment-dired)
+          ("am" . pdf-annot-add-markup-annotation)
+          ("at" . pdf-annot-add-text-annotation)
+          ("y"  . pdf-view-kill-ring-save)
+          ("i"  . pdf-misc-display-metadata)
+          ("s"  . pdf-occur)
+          ("b"  . pdf-view-set-slice-from-bounding-box)
+          ("r"  . pdf-view-reset-slice)))
+
+
+  (use-package org-pdfview
+    :ensure t)
+
+  (defhydra hydra-pdftools (:color blue :hint nil)
+          "
+                                                                        ╭───────────┐
+         Move  History   Scale/Fit     Annotations  Search/Link    Do   │ PDF Tools │
+     ╭──────────────────────────────────────────────────────────────────┴───────────╯
+           ^^_g_^^      _B_    ^↧^    _+_    ^ ^     [_al_] list    [_s_] search    [_u_] revert buffer
+           ^^^↑^^^      ^↑^    _H_    ^↑^  ↦ _W_ ↤   [_am_] markup  [_o_] outline   [_i_] info
+           ^^_p_^^      ^ ^    ^↥^    _0_    ^ ^     [_at_] text    [_F_] link      [_d_] dark mode
+           ^^^↑^^^      ^↓^  ╭─^─^─┐  ^↓^  ╭─^ ^─┐   [_ad_] delete  [_f_] search link
+      _h_ ←pag_e_→ _l_  _N_  │ _P_ │  _-_    _b_     [_aa_] dired
+           ^^^↓^^^      ^ ^  ╰─^─^─╯  ^ ^  ╰─^ ^─╯   [_y_]  yank
+           ^^_n_^^      ^ ^  _r_eset slice box
+           ^^^↓^^^
+           ^^_G_^^
+     --------------------------------------------------------------------------------
+          "
+          ("?" hydra-master/body "back")
+          ("<ESC>" nil "quit")
+          ("al" pdf-annot-list-annotations)
+          ("ad" pdf-annot-delete)
+          ("aa" pdf-annot-attachment-dired)
+          ("am" pdf-annot-add-markup-annotation)
+          ("at" pdf-annot-add-text-annotation)
+          ("y"  pdf-view-kill-ring-save)
+          ("+" pdf-view-enlarge :color red)
+          ("-" pdf-view-shrink :color red)
+          ("0" pdf-view-scale-reset)
+          ("H" pdf-view-fit-height-to-window)
+          ("W" pdf-view-fit-width-to-window)
+          ("P" pdf-view-fit-page-to-window)
+          ("n" pdf-view-next-page-command :color red)
+          ("p" pdf-view-previous-page-command :color red)
+          ("d" pdf-view-dark-minor-mode)
+          ("b" pdf-view-set-slice-from-bounding-box)
+          ("r" pdf-view-reset-slice)
+          ("g" pdf-view-first-page)
+          ("G" pdf-view-last-page)
+          ("e" pdf-view-goto-page)
+          ("o" pdf-outline)
+          ("s" pdf-occur)
+          ("i" pdf-misc-display-metadata)
+          ("u" pdf-view-revert-buffer)
+          ("F" pdf-links-action-perfom)
+          ("f" pdf-links-isearch-link)
+          ("B" pdf-history-backward :color red)
+          ("N" pdf-history-forward :color red)
+          ("l" image-forward-hscroll :color red)
+          ("h" image-backward-hscroll :color red))
+#+end_src
+*** Bibliography
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (setq papers-pdfs "~/documents/text/references/pdfs/")
+  (setq papers-notes "~/documents/text/references/notes.org")
+  (setq papers-bib "~/documents/text/references/bibliography.bib")
+
+  (use-package ivy-bibtex
+    :ensure t
+    :bind (("C-c b" . ivy-bibtex))
+    :config
+    (setq bibtex-completion-bibliography papers-bib)
+    (setq bibtex-completion-library-path papers-pdfs)
+    (setq bibtex-completion-notes-path papers-notes)
+    (setq bibtex-completion-pdf-field "File"))
+
+  (use-package org-ref
+    :ensure t
+    :config
+    (setq reftex-default-bibliography '(papers-bib))
+    (setq org-ref-bibliography-notes papers-notes
+          org-ref-default-bibliography '("~/documents/text/references/bibliography.bib")
+          org-ref-pdf-directory papers-pdfs))
+
+  (use-package interleave
+    :ensure t)
+
+  (use-package ebib
+    :ensure t
+    :bind (("C-c e" . ebib))
+    :config
+    (setq ebib-autogenerate-keys t)
+    (setq ebib-file-search-dirs '("~/documents/text/references/pdfs/" "~/"))
+    (setq ebib-preload-bib-files '("~/documents/text/references/bibliography.bib")))
+#+END_SRC
+*** Company
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package company-auctex
+    :ensure t
+    :config
+    (company-auctex-init))
+#+END_SRC
+* Secrets
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (load-file "~/.emacs.d/secrets.el")
+#+END_SRC

@@ -1,0 +1,246 @@
+;;;; -*-lisp-*-
+
+(in-package :stumpwm)
+
+(defun load-file (file)
+  (load (concatenate 'string (stumpwm::getenv "HOME") "/.stump/" file ".lisp")))
+					;  (load (concatenate 'string "/home/philip" "/.stump/" file ".lisp")))
+
+(defun global (key command)
+  (define-key *top-map* (kbd key) command))
+
+
+(load-module "mpd")
+(load-module "surfraw")
+								   ;(load-module "stumptray")
+								   ;(load-module "wifi")
+								   ;(load-module "battery-portable")
+								   ;(load-file "surfraw")
+								   ;(load-module "maildir")
+(setq mpd:*mpd-port* 58124)
+(mpd:mpd-connect)
+;(load-file "mode-line")
+(load-file "defprog")
+
+(undefine-key *root-map* (kbd "d"))
+(undefine-key *root-map* (kbd "'"))
+(undefine-key *root-map* (kbd "\""))
+(undefine-key *root-map* (kbd "s"))
+(undefine-key *root-map* (kbd "S"))
+(undefine-key *root-map* (kbd "k"))
+(undefine-key *root-map* (kbd "C-k"))
+(undefine-key *root-map* (kbd "c"))
+(undefine-key *root-map* (kbd "C-c"))
+(undefine-key *root-map* (kbd "e"))
+(undefine-key *root-map* (kbd "C-e"))
+(undefine-key *root-map* (kbd "F1"))
+(undefine-key *root-map* (kbd "F2"))
+(undefine-key *root-map* (kbd "F3"))
+(undefine-key *root-map* (kbd "F4"))
+(undefine-key *root-map* (kbd "F5"))
+(undefine-key *root-map* (kbd "F6"))
+(undefine-key *root-map* (kbd "F7"))
+(undefine-key *root-map* (kbd "F8"))
+(undefine-key *root-map* (kbd "F9"))
+(undefine-key *root-map* (kbd "F10"))
+(undefine-key *root-map* (kbd "1"))
+(undefine-key *root-map* (kbd "2"))
+(undefine-key *root-map* (kbd "3"))
+(undefine-key *root-map* (kbd "4"))
+(undefine-key *root-map* (kbd "5"))
+(undefine-key *root-map* (kbd "6"))
+(undefine-key *root-map* (kbd "7"))
+(undefine-key *root-map* (kbd "8"))
+(undefine-key *root-map* (kbd "9"))
+(undefine-key *root-map* (kbd "0"))
+
+;; (setq *mode-line-pad-y* 8)		
+(ql:quickload :swank)
+(defcommand swank () ()
+ 	    (swank:create-server :port 4005
+ 				 :style swank:*communication-style*
+ 				 :dont-close t))
+ (swank)
+
+;(push (probe-file))
+
+
+(setq *MOUSE-FOCUS-POLICY* :sloppy)
+(push '(:class "Firefox") *deny-raise-request*)
+
+
+(defvar *terminal* "urxvtc")
+(set-prefix-key (kbd "s-x"))
+
+;; (mode-line)
+					;(gnewbg ".scratchpad")
+(run-commands "gselect 1")
+(grename "web")
+(gnewbg "dev")
+(gnewbg "media")
+(gnewbg "misc")
+
+(defprog darktable "d" "darktable" '(:class "Darktable"))
+(defprog zathura "z" "zathura" '(:class "zathura"))
+(defprog firefox "a" "firefox" '(:class "Firefox"))
+(defprog emacs "e" "emacsclient -c" '(:class "Emacs"))
+(defprog transmission "t" "transmission-gtk" '(:class "Transmission-gtk"))
+(defprog twitch "v" "streamlink-twitch-gui" '(:title "Streamlink Twitch GUI"))
+(defprog kodi "k" "kodi" '(:class "Kodi"))
+(defcommand terminal () ()
+  "Open a terminal"
+  (run-shell-command "urxvtc"))
+(define-key *top-map* (kbd "s-RET") "terminal")
+(defcommand htop () ()
+  "Run htop or pull it to the current frame"
+  (run-or-pull "urxvtc -title htop -e htop" '(:title "htop")))
+(define-key *top-map* (kbd "s-h") "htop")
+(defcommand steam () ()
+  "run steam or raise it in place"
+  (run-or-raise "steam" '(:class "Steam")))
+(define-key *top-map* (kbd "s-s") "steam")
+
+(setq *shell-program* (stumpwm::getenv "SHELL"))
+(set-maxsize-gravity :top)
+(set-transient-gravity :top)
+
+;(defcommand scratchpad () ()
+;            "Toggle the scratchpad"
+ ;           (run-commands (if (equal ".scratchpad" (group-name (current-group)))
+  ;                          "gother"
+   ;                         "gselect .scratchpad")))
+
+(setq *normal-border-width* 2)
+(setq *maxsize-border-width* 2)
+(setq *transient-border-width* 2)
+(setq *window-border-style* :tight)
+(set-focus-color "#99ab6f")
+(set-unfocus-color "#495d6e")
+(set-float-focus-color "#99ab6f")
+(set-float-unfocus-color "#495d6e")
+(set-fg-color "#c0c0c0")
+(set-bg-color "#181818")
+(set-border-color "#495d6e")
+(set-msg-border-width 2)
+(setq *ignore-wm-inc-hints* t)
+
+(set-font "-*-terminus-medium-r-*-*-14-*-*-*-*-*-*-u,-*-terminusmodx-medium-*-*-*-12-*-*-*-*-*-*-*")
+
+(defcommand increase-volume () ()
+  "Increase the sound volume"
+  (run-shell-command "amixer set Master 3%+ unmute"))
+
+(defcommand decrease-volume () ()
+  "Decrease the sound volume"
+  (run-shell-command "amixer set Master 3%- unmute"))
+
+(defcommand mute-volume () ()
+  "Set the sound to mute"
+  (run-shell-command "amixer set Master mute"))
+
+(defcommand lock () () 
+  "Run a program to lock the screen"
+  (run-shell-command "slock"))
+
+(defcommand redshift-toggle () ()
+	    "Toggle Redshift"
+	    (run-shell-command "pkill -USR1 redshift"))
+(defcommand monitor-toggle () ()
+	    (run-shell-command "dockswitch"))
+(defcommand backlight-down () ()
+	    "Bring backlight down"
+	    (run-shell-command "xbacklight -dec 5"))
+
+(defcommand backlight-up () ()
+  "Bring backlight down"
+  (run-shell-command "xbacklight -inc 5"))
+
+(defcommand backlight-set (percent) ((:string "Backlight: "))
+  (run-shell-command (concatenate 'string "xbacklight -set " percent)))
+
+(defcommand next-song () ()
+  "Switch to the next song in playlist"
+  (mpd:mpd-next))
+
+
+(defcommand pause-song () ()
+  "Pause the currently playing song (toggles)"
+  (mpd:mpd-toggle-pause))
+
+(defcommand random-album () ()
+  "Play a random album"
+  (run-shell-command "mpdrandom -p 58124"))
+
+(defcommand rofi-run () ()
+  "Run rofi run"
+  (run-shell-command "rofi -show run"))
+
+(defcommand rofi-window () ()
+  "run rofi window"
+  (run-shell-command "rofi -show window"))
+
+(define-frame-preference "web"
+    (0 t t :class "Firefox")
+  (0 nil t :class "Transmission-gtk"))
+(define-frame-preference "media"
+    (1 t t :class "mpv")
+  (0 nil t :class "Steam")
+  (1 nil t :title "Streamlink Twitch GUI")
+  (0 nil t :class "Kodi")
+  (0 nil t :class "Darktable"))
+
+
+(global "XF86AudioRaiseVolume" "increase-volume")
+(global "XF86AudioLowerVolume" "decrease-volume")
+(global "XF86AudioMute" "mute-volume")
+(global "s-m" "monitor-toggle")
+(global "s-L" "lock")
+(global "s-SPC" "rofi-run")
+(global "s-p" "pause-song")
+(global "s-n" "next-song")
+(global "s-r" "random-album")
+(global "s-c" "redshift-toggle")
+(define-key *root-map* (kbd "b") "rofi-window")
+(define-key *root-map* (kbd "s") "scratchpad")
+(define-key *root-map* (kbd "2") "vsplit")
+(define-key *root-map* (kbd "3") "hsplit")
+(define-key *root-map* (kbd "1") "only")
+(define-key *root-map* (kbd "DEL") "remove") 
+(define-key *root-map* (kbd "n") "next-in-frame")
+(define-key *root-map* (kbd "p") "prev-in-frame")
+(global "s-w" "delete-window")
+(global "s-0" "gselect 10")
+(global "s-1" "gselect 1")
+(global "s-2" "gselect 2")
+(global "s-3" "gselect 3")
+(global "s-4" "gselect 4")
+(global "s-5" "gselect 5")
+(global "s-6" "gselect 6")
+(global "s-7" "gselect 7")
+(global "s-8" "gselect 8")
+(global "s-9" "gselect 9")
+(global "s-)" "gmove 10")
+(global "s-!" "gmove 1")
+(global "s-@" "gmove 2")
+(global "s-#" "gmove 3")
+(global "s-$" "gmove 4")
+(global "s-%" "gmove 5")
+(global "s-^" "gmove 6")
+(global "s-&" "gmove 7")
+(global "s-*" "gmove 8")
+(global "s-(" "gmove 9")
+
+(global "s-f" "fullscreen")
+(global "s-Right" "move-focus right")
+(global "s-S-Right" "move-window right")
+(global "s-Left" "move-focus left")
+(global "s-S-Left" "move-window left")
+(global "s-Up" "move-focus up")
+(global "s-S-Up" "move-window up")
+(global "s-Down" "move-focus down")
+(global "s-S-Down" "move-window down")
+(global "XF86MonBrightnessUp" "backlight-up")
+(global "XF86MonBrightnessDown" "backlight-down")
+(global "s-b" "backlight-set")
+
+
